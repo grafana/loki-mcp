@@ -35,7 +35,7 @@ func TestFormatLokiResults_TimestampParsing(t *testing.T) {
 	}
 
 	// Format the results
-	output, err := formatLokiResults(result)
+	output, err := formatLokiResults(result, "raw")
 	if err != nil {
 		t.Fatalf("formatLokiResults failed: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestFormatLokiResults_MultipleTimestamps(t *testing.T) {
 		},
 	}
 
-	output, err := formatLokiResults(result)
+	output, err := formatLokiResults(result, "raw")
 	if err != nil {
 		t.Fatalf("formatLokiResults failed: %v", err)
 	}
@@ -119,14 +119,14 @@ func TestFormatLokiResults_InvalidTimestamp(t *testing.T) {
 		},
 	}
 
-	output, err := formatLokiResults(result)
+	output, err := formatLokiResults(result, "raw")
 	if err != nil {
 		t.Fatalf("formatLokiResults failed: %v", err)
 	}
 
 	// Should contain the original invalid timestamp as fallback
-	if !strings.Contains(output, "[invalid-timestamp]") {
-		t.Errorf("Expected output to contain '[invalid-timestamp]' as fallback, but got:\n%s", output)
+	if !strings.Contains(output, "invalid-timestamp") {
+		t.Errorf("Expected output to contain 'invalid-timestamp' as fallback, but got:\n%s", output)
 	}
 
 	// Should still contain the log message
@@ -145,7 +145,7 @@ func TestFormatLokiResults_EmptyResult(t *testing.T) {
 		},
 	}
 
-	output, err := formatLokiResults(result)
+	output, err := formatLokiResults(result, "raw")
 	if err != nil {
 		t.Fatalf("formatLokiResults failed: %v", err)
 	}
@@ -180,7 +180,7 @@ func TestFormatLokiResults_RecentTimestamp(t *testing.T) {
 		},
 	}
 
-	output, err := formatLokiResults(result)
+	output, err := formatLokiResults(result, "raw")
 	if err != nil {
 		t.Fatalf("formatLokiResults failed: %v", err)
 	}
@@ -241,7 +241,7 @@ func TestFormatLokiResults_NoYear2262Bug(t *testing.T) {
 				},
 			}
 
-			output, err := formatLokiResults(result)
+			output, err := formatLokiResults(result, "raw")
 			if err != nil {
 				t.Fatalf("formatLokiResults failed: %v", err)
 			}

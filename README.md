@@ -62,6 +62,7 @@ The `loki_query` tool allows you to query Grafana Loki log data:
   - `end`: End time for the query (default: now)
   - `limit`: Maximum number of entries to return (default: 100)
   - `org`: Organization ID for the query (sent as X-Scope-OrgID header)
+  - `direction`: Sort order of logs: forward (oldest first) or backward (newest first, default: backward)
 
 #### Environment Variables
 

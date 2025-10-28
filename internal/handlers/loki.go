@@ -125,6 +125,10 @@ func NewLokiQueryTool() mcp.Tool {
 			mcp.Description("Output format: raw, json, or text (default: raw)"),
 			mcp.DefaultString("raw"),
 		),
+		mcp.WithString("direction",
+			mcp.Description("Sort order of logs: forward (oldest first) or backward (newest first, default: backward)"),
+			mcp.DefaultString("backward"),
+		),
 	)
 }
 
@@ -205,8 +209,18 @@ func HandleLokiQuery(ctx context.Context, request mcp.CallToolRequest) (*mcp.Cal
 		format = formatArg
 	}
 
+	// Extract direction parameter
+	direction := "backward" // default
+	if directionArg, ok := args["direction"].(string); ok && directionArg != "" {
+		// Validate direction parameter
+		if directionArg != "forward" && directionArg != "backward" {
+			return nil, fmt.Errorf("invalid direction: %s. Must be 'forward' or 'backward'", directionArg)
+		}
+		direction = directionArg
+	}
+
 	// Build query URL
-	queryURL, err := buildLokiQueryURL(lokiURL, queryString, start, end, limit)
+	queryURL, err := buildLokiQueryURL(lokiURL, queryString, start, end, limit, direction)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build query URL: %v", err)
 	}
@@ -277,7 +291,7 @@ func parseTime(timeStr string) (time.Time, error) {
 }
 
 // buildLokiQueryURL constructs the Loki query URL
-func buildLokiQueryURL(baseURL, query string, start, end int64, limit int) (string, error) {
+func buildLokiQueryURL(baseURL, query string, start, end int64, limit int, direction string) (string, error) {
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		return "", err
@@ -303,6 +317,7 @@ func buildLokiQueryURL(baseURL, query string, start, end int64, limit int) (stri
 	q.Set("start", fmt.Sprintf("%d", start))
 	q.Set("end", fmt.Sprintf("%d", end))
 	q.Set("limit", fmt.Sprintf("%d", limit))
+	q.Set("direction", direction)
 	u.RawQuery = q.Encode()
 
 	return u.String(), nil
