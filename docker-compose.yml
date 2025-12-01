@@ -48,7 +48,7 @@ services:
 
   # Add Promtail to collect and forward logs to Loki
   promtail:
-    image: grafana/promtail:2.9.0
+    image: grafana/promtail:2.9.17@sha256:b28495fdab552b183428c5b5cebbf258231fc5f00be7724be2bc091ad21ac390
     container_name: promtail
     volumes:
       - /var/log:/var/log
