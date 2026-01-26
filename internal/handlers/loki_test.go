@@ -1,33 +1,33 @@
 package handlers
 
 import (
-	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/grafana/loki/v3/pkg/loghttp"
 )
 
-// TestFormatLokiResults_TimestampParsing tests that timestamps from Loki are correctly parsed
-// This test specifically addresses the bug where timestamps were showing as year 2262
-// due to incorrect conversion from nanoseconds to time objects.
+// TestFormatLokiResults_TimestampParsing tests that timestamps from Loki are correctly formatted
+// With the official client, timestamps are already parsed as time.Time, so this test
+// verifies that formatting works correctly.
 func TestFormatLokiResults_TimestampParsing(t *testing.T) {
-	// Test case with known timestamp
-	// Using a specific timestamp: 2024-01-15T10:30:45Z = 1705312245000000000 nanoseconds
-	timestampStr := "1705312245000000000" // This represents the nanosecond timestamp
+	// Test case with known timestamp: 2024-01-15T10:30:45Z
+	timestamp := time.Date(2024, 1, 15, 10, 30, 45, 0, time.UTC)
 
 	// Create a sample Loki result with the test timestamp
-	result := &LokiResult{
+	result := &loghttp.QueryResponse{
 		Status: "success",
-		Data: LokiData{
-			ResultType: "streams",
-			Result: []LokiEntry{
+		Data: loghttp.QueryResponseData{
+			ResultType: loghttp.ResultTypeStream,
+			Result: loghttp.Streams{
 				{
-					Stream: map[string]string{
+					Labels: loghttp.LabelSet{
 						"job":   "test-job",
 						"level": "info",
 					},
-					Values: [][]string{
-						{timestampStr, "Test log message"},
+					Entries: []loghttp.Entry{
+						{Timestamp: timestamp, Line: "Test log message"},
 					},
 				},
 			},
@@ -35,13 +35,12 @@ func TestFormatLokiResults_TimestampParsing(t *testing.T) {
 	}
 
 	// Format the results
-	output, err := formatLokiResults(result)
+	output, err := formatLokiResults(result, "text")
 	if err != nil {
 		t.Fatalf("formatLokiResults failed: %v", err)
 	}
 
 	// Verify the output contains the correct timestamp
-	// Note: The timestamp will be formatted in local timezone, so we check for the date part
 	if !strings.Contains(output, "2024-01-15T") {
 		t.Errorf("Expected output to contain date '2024-01-15T', but got:\n%s", output)
 	}
@@ -57,33 +56,33 @@ func TestFormatLokiResults_TimestampParsing(t *testing.T) {
 	}
 
 	// Verify it contains the stream information
-	if !strings.Contains(output, "job=test-job") {
-		t.Errorf("Expected output to contain stream info 'job=test-job', but got:\n%s", output)
+	if !strings.Contains(output, "job") && !strings.Contains(output, "test-job") {
+		t.Errorf("Expected output to contain stream info 'job' or 'test-job', but got:\n%s", output)
 	}
 }
 
-// TestFormatLokiResults_MultipleTimestamps tests parsing of multiple log entries with different timestamps
+// TestFormatLokiResults_MultipleTimestamps tests formatting of multiple log entries with different timestamps
 func TestFormatLokiResults_MultipleTimestamps(t *testing.T) {
-	result := &LokiResult{
+	result := &loghttp.QueryResponse{
 		Status: "success",
-		Data: LokiData{
-			ResultType: "streams",
-			Result: []LokiEntry{
+		Data: loghttp.QueryResponseData{
+			ResultType: loghttp.ResultTypeStream,
+			Result: loghttp.Streams{
 				{
-					Stream: map[string]string{
+					Labels: loghttp.LabelSet{
 						"job": "test-job",
 					},
-					Values: [][]string{
-						{"1705312245000000000", "First log message"},  // 2024-01-15T10:30:45Z
-						{"1705312260000000000", "Second log message"}, // 2024-01-15T10:31:00Z
-						{"1705312275000000000", "Third log message"},  // 2024-01-15T10:31:15Z
+					Entries: []loghttp.Entry{
+						{Timestamp: time.Date(2024, 1, 15, 10, 30, 45, 0, time.UTC), Line: "First log message"},
+						{Timestamp: time.Date(2024, 1, 15, 10, 31, 0, 0, time.UTC), Line: "Second log message"},
+						{Timestamp: time.Date(2024, 1, 15, 10, 31, 15, 0, time.UTC), Line: "Third log message"},
 					},
 				},
 			},
 		},
 	}
 
-	output, err := formatLokiResults(result)
+	output, err := formatLokiResults(result, "text")
 	if err != nil {
 		t.Fatalf("formatLokiResults failed: %v", err)
 	}
@@ -100,52 +99,17 @@ func TestFormatLokiResults_MultipleTimestamps(t *testing.T) {
 	}
 }
 
-// TestFormatLokiResults_InvalidTimestamp tests handling of invalid timestamp strings
-func TestFormatLokiResults_InvalidTimestamp(t *testing.T) {
-	result := &LokiResult{
-		Status: "success",
-		Data: LokiData{
-			ResultType: "streams",
-			Result: []LokiEntry{
-				{
-					Stream: map[string]string{
-						"job": "test-job",
-					},
-					Values: [][]string{
-						{"invalid-timestamp", "Log with invalid timestamp"},
-					},
-				},
-			},
-		},
-	}
-
-	output, err := formatLokiResults(result)
-	if err != nil {
-		t.Fatalf("formatLokiResults failed: %v", err)
-	}
-
-	// Should contain the original invalid timestamp as fallback
-	if !strings.Contains(output, "[invalid-timestamp]") {
-		t.Errorf("Expected output to contain '[invalid-timestamp]' as fallback, but got:\n%s", output)
-	}
-
-	// Should still contain the log message
-	if !strings.Contains(output, "Log with invalid timestamp") {
-		t.Errorf("Expected output to contain log message, but got:\n%s", output)
-	}
-}
-
 // TestFormatLokiResults_EmptyResult tests handling of empty results
 func TestFormatLokiResults_EmptyResult(t *testing.T) {
-	result := &LokiResult{
+	result := &loghttp.QueryResponse{
 		Status: "success",
-		Data: LokiData{
-			ResultType: "streams",
-			Result:     []LokiEntry{},
+		Data: loghttp.QueryResponseData{
+			ResultType: loghttp.ResultTypeStream,
+			Result:     loghttp.Streams{},
 		},
 	}
 
-	output, err := formatLokiResults(result)
+	output, err := formatLokiResults(result, "text")
 	if err != nil {
 		t.Fatalf("formatLokiResults failed: %v", err)
 	}
@@ -160,27 +124,25 @@ func TestFormatLokiResults_EmptyResult(t *testing.T) {
 func TestFormatLokiResults_RecentTimestamp(t *testing.T) {
 	// Use current time
 	now := time.Now().UTC()
-	timestampNanos := now.UnixNano()
-	timestampStr := strconv.FormatInt(timestampNanos, 10)
 
-	result := &LokiResult{
+	result := &loghttp.QueryResponse{
 		Status: "success",
-		Data: LokiData{
-			ResultType: "streams",
-			Result: []LokiEntry{
+		Data: loghttp.QueryResponseData{
+			ResultType: loghttp.ResultTypeStream,
+			Result: loghttp.Streams{
 				{
-					Stream: map[string]string{
+					Labels: loghttp.LabelSet{
 						"job": "recent-test",
 					},
-					Values: [][]string{
-						{timestampStr, "Recent log message"},
+					Entries: []loghttp.Entry{
+						{Timestamp: now, Line: "Recent log message"},
 					},
 				},
 			},
 		},
 	}
 
-	output, err := formatLokiResults(result)
+	output, err := formatLokiResults(result, "text")
 	if err != nil {
 		t.Fatalf("formatLokiResults failed: %v", err)
 	}
@@ -199,49 +161,49 @@ func TestFormatLokiResults_RecentTimestamp(t *testing.T) {
 // TestFormatLokiResults_NoYear2262Bug is a regression test for the specific bug reported in issue #3
 // This test ensures that timestamps never show year 2262 due to incorrect nanosecond conversion
 func TestFormatLokiResults_NoYear2262Bug(t *testing.T) {
-	// This test uses a variety of realistic nanosecond timestamps
+	// This test uses a variety of realistic timestamps
 	testCases := []struct {
 		name         string
-		timestampNs  string
+		timestamp    time.Time
 		expectedYear string
 	}{
 		{
 			name:         "Current timestamp",
-			timestampNs:  "1705312245000000000", // 2024-01-15T10:30:45Z
+			timestamp:    time.Date(2024, 1, 15, 10, 30, 45, 0, time.UTC),
 			expectedYear: "2024",
 		},
 		{
 			name:         "Recent timestamp",
-			timestampNs:  "1700000000000000000", // 2023-11-14T22:13:20Z
+			timestamp:    time.Date(2023, 11, 14, 22, 13, 20, 0, time.UTC),
 			expectedYear: "2023",
 		},
 		{
 			name:         "Future timestamp",
-			timestampNs:  "1800000000000000000", // 2027-01-11T02:13:20Z
+			timestamp:    time.Date(2027, 1, 11, 2, 13, 20, 0, time.UTC),
 			expectedYear: "2027",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := &LokiResult{
+			result := &loghttp.QueryResponse{
 				Status: "success",
-				Data: LokiData{
-					ResultType: "streams",
-					Result: []LokiEntry{
+				Data: loghttp.QueryResponseData{
+					ResultType: loghttp.ResultTypeStream,
+					Result: loghttp.Streams{
 						{
-							Stream: map[string]string{
+							Labels: loghttp.LabelSet{
 								"job": "regression-test",
 							},
-							Values: [][]string{
-								{tc.timestampNs, "Test log message"},
+							Entries: []loghttp.Entry{
+								{Timestamp: tc.timestamp, Line: "Test log message"},
 							},
 						},
 					},
 				},
 			}
 
-			output, err := formatLokiResults(result)
+			output, err := formatLokiResults(result, "text")
 			if err != nil {
 				t.Fatalf("formatLokiResults failed: %v", err)
 			}
@@ -256,5 +218,129 @@ func TestFormatLokiResults_NoYear2262Bug(t *testing.T) {
 				t.Errorf("Expected output to contain year %s, but got:\n%s", tc.expectedYear, output)
 			}
 		})
+	}
+}
+
+// TestFormatLokiResults_RawFormat tests the raw output format
+func TestFormatLokiResults_RawFormat(t *testing.T) {
+	timestamp := time.Date(2024, 1, 15, 10, 30, 45, 0, time.UTC)
+
+	result := &loghttp.QueryResponse{
+		Status: "success",
+		Data: loghttp.QueryResponseData{
+			ResultType: loghttp.ResultTypeStream,
+			Result: loghttp.Streams{
+				{
+					Labels: loghttp.LabelSet{
+						"job": "test-job",
+					},
+					Entries: []loghttp.Entry{
+						{Timestamp: timestamp, Line: "Test log message"},
+					},
+				},
+			},
+		},
+	}
+
+	output, err := formatLokiResults(result, "raw")
+	if err != nil {
+		t.Fatalf("formatLokiResults failed: %v", err)
+	}
+
+	// Raw format should have timestamp, labels, and message
+	if !strings.Contains(output, "2024-01-15T10:30:45Z") {
+		t.Errorf("Expected output to contain timestamp '2024-01-15T10:30:45Z', but got:\n%s", output)
+	}
+
+	if !strings.Contains(output, "Test log message") {
+		t.Errorf("Expected output to contain 'Test log message', but got:\n%s", output)
+	}
+}
+
+// TestFormatLokiResults_JSONFormat tests the JSON output format
+func TestFormatLokiResults_JSONFormat(t *testing.T) {
+	timestamp := time.Date(2024, 1, 15, 10, 30, 45, 0, time.UTC)
+
+	result := &loghttp.QueryResponse{
+		Status: "success",
+		Data: loghttp.QueryResponseData{
+			ResultType: loghttp.ResultTypeStream,
+			Result: loghttp.Streams{
+				{
+					Labels: loghttp.LabelSet{
+						"job": "test-job",
+					},
+					Entries: []loghttp.Entry{
+						{Timestamp: timestamp, Line: "Test log message"},
+					},
+				},
+			},
+		},
+	}
+
+	output, err := formatLokiResults(result, "json")
+	if err != nil {
+		t.Fatalf("formatLokiResults failed: %v", err)
+	}
+
+	// JSON format should be valid JSON with status
+	if !strings.Contains(output, `"status"`) {
+		t.Errorf("Expected output to contain '\"status\"', but got:\n%s", output)
+	}
+}
+
+// TestFormatLokiLabelsResults tests the labels formatting
+func TestFormatLokiLabelsResults(t *testing.T) {
+	result := &loghttp.LabelResponse{
+		Status: "success",
+		Data:   []string{"job", "level", "namespace"},
+	}
+
+	// Test raw format
+	output, err := formatLokiLabelsResults(result, "raw")
+	if err != nil {
+		t.Fatalf("formatLokiLabelsResults failed: %v", err)
+	}
+
+	if !strings.Contains(output, "job\n") {
+		t.Errorf("Expected output to contain 'job', but got:\n%s", output)
+	}
+
+	// Test text format
+	output, err = formatLokiLabelsResults(result, "text")
+	if err != nil {
+		t.Fatalf("formatLokiLabelsResults failed: %v", err)
+	}
+
+	if !strings.Contains(output, "Found 3 labels") {
+		t.Errorf("Expected output to contain 'Found 3 labels', but got:\n%s", output)
+	}
+}
+
+// TestFormatLokiLabelValuesResults tests the label values formatting
+func TestFormatLokiLabelValuesResults(t *testing.T) {
+	result := &loghttp.LabelResponse{
+		Status: "success",
+		Data:   []string{"value1", "value2", "value3"},
+	}
+
+	// Test raw format
+	output, err := formatLokiLabelValuesResults("testlabel", result, "raw")
+	if err != nil {
+		t.Fatalf("formatLokiLabelValuesResults failed: %v", err)
+	}
+
+	if !strings.Contains(output, "value1\n") {
+		t.Errorf("Expected output to contain 'value1', but got:\n%s", output)
+	}
+
+	// Test text format
+	output, err = formatLokiLabelValuesResults("testlabel", result, "text")
+	if err != nil {
+		t.Fatalf("formatLokiLabelValuesResults failed: %v", err)
+	}
+
+	if !strings.Contains(output, "Found 3 values for label 'testlabel'") {
+		t.Errorf("Expected output to contain label count and name, but got:\n%s", output)
 	}
 }

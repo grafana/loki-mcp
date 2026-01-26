@@ -10,15 +10,16 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: '1.24.4'
+        go-version: stable
+
     - name: Cache Go modules
       uses: actions/cache@v4
       with:
@@ -50,18 +51,18 @@ jobs:
         file: ./coverage.out
         fail_ci_if_error: false
 
-  build:
-    name: Build
+  integration-test:
+    name: Integration Tests
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: '1.24.4'
+        go-version: stable
 
     - name: Cache Go modules
       uses: actions/cache@v4
@@ -74,11 +75,43 @@ jobs:
     - name: Download dependencies
       run: go mod download
 
-    - name: Build server
-      run: go build -v ./cmd/server
+    - name: Run integration tests
+      run: go test -v -race -tags=integration -timeout=5m ./...
 
-    - name: Build client
-      run: go build -v ./cmd/client
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: stable
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Check formatting
+      run: |
+        if [ -n "$(gofmt -l .)" ]; then
+          echo "Code is not formatted. Run 'gofmt -w .'"
+          gofmt -d .
+          exit 1
+        fi
+
+    - name: Build
+      run: go build -v ./cmd/loki-mcp
 
     - name: Check for vulnerabilities
       run: |
@@ -88,102 +121,18 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: '1.24.4'
+        go-version: stable
 
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v4
+      uses: golangci/golangci-lint-action@v9
       with:
         version: latest
         args: --timeout=5m
-
-#   integration-test:
-#     name: Integration Test
-#     runs-on: ubuntu-latest
-    
-#     services:
-#       loki:
-#         image: grafana/loki:2.9.0
-#         ports:
-#           - 3100:3100
-#         options: >-
-#           --health-cmd="wget -q --spider http://localhost:3100/ready || exit 1"
-#           --health-interval=5s
-#           --health-timeout=5s
-#           --health-retries=10
-#           --health-start-period=5s
-
-#     steps:
-#     - name: Checkout code
-#       uses: actions/checkout@v4
-
-#     - name: Set up Go
-#       uses: actions/setup-go@v4
-#       with:
-#         go-version: '1.24.4'
-
-#     - name: Download dependencies
-#       run: go mod download
-
-#     - name: Build client and server
-#       run: |
-#         go build -o loki-mcp-server ./cmd/server
-#         go build -o loki-mcp-client ./cmd/client
-
-#     - name: Wait for Loki to be ready
-#       run: |
-#         timeout 30s bash -c 'until curl -f http://localhost:3100/ready; do sleep 1; done'
-
-#     - name: Insert test logs
-#       run: |
-#         chmod +x ./insert-loki-logs.sh
-#         ./insert-loki-logs.sh --num 5 --job ci-test
-
-#     - name: Test timestamp parsing with real Loki data
-#       run: |
-#         chmod +x ./test-loki-query.sh
-#         # Test that our timestamp fix works with real Loki
-#         OUTPUT=$(./loki-mcp-client loki_query '{job="ci-test"}' "-1h" "now" 10 2>&1)
-#         echo "Query output: $OUTPUT"
-        
-#         # Verify no 2262 dates appear (the bug we fixed)
-#         if echo "$OUTPUT" | grep -q "2262"; then
-#           echo "ERROR: Found year 2262 in output, timestamp bug is present!"
-#           echo "$OUTPUT"
-#           exit 1
-#         fi
-        
-#         # Verify we got some logs with reasonable dates
-#         if echo "$OUTPUT" | grep -q "202[3-9]"; then
-#           echo "SUCCESS: Found reasonable timestamps in output"
-#         else
-#           echo "ERROR: No reasonable timestamps found in output"
-#           echo "$OUTPUT"
-#           exit 1
-#         fi
-
-#     - name: Test MCP tool functionality
-#       env:
-#         LOKI_URL: http://localhost:3100
-#       run: |
-#         # Test basic MCP functionality
-#         echo '{"jsonrpc":"2.0","id":"1","method":"tools/call","params":{"name":"loki_query","arguments":{"query":"{job=\"ci-test\"}","start":"-1h","end":"now","limit":5}}}' | \
-#         timeout 10s ./loki-mcp-server > /tmp/mcp_output.json 2>&1 &
-#         SERVER_PID=$!
-#         sleep 2
-        
-#         # Check if we got valid JSON response
-#         if [ -f /tmp/mcp_output.json ]; then
-#           echo "MCP Server response:"
-#           cat /tmp/mcp_output.json
-#         fi
-        
-#         # Clean up
-#         kill $SERVER_PID 2>/dev/null || true 

@@ -17,7 +17,7 @@ services:
         condition: service_healthy
 
   loki:
-    image: grafana/loki:2.9.0
+    image: grafana/loki:3.6.0
     container_name: loki
     ports:
       - "3100:3100"
@@ -42,17 +42,17 @@ services:
       - GF_AUTH_DISABLE_LOGIN_FORM=true
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
     depends_on:
       - loki
 
   # Add Promtail to collect and forward logs to Loki
   promtail:
-    image: grafana/promtail:2.9.0
+    image: grafana/promtail:3.6.0
     container_name: promtail
     volumes:
       - /var/log:/var/log
-      - ./promtail:/etc/promtail
+      - ./docker/promtail:/etc/promtail
       - /var/run/docker.sock:/var/run/docker.sock
     command: -config.file=/etc/promtail/config.yml
     depends_on:

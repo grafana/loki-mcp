@@ -35,3 +35,9 @@ Thumbs.db
 # Binary output
 /loki-mcp-server
 /loki-mcp-client
+/loki-mcp
+
+# GoReleaser
+dist/
+
+.claude/settings.local.json
