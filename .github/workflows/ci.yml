@@ -45,7 +45,7 @@ jobs:
         echo '```' >> $GITHUB_STEP_SUMMARY
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@1af58845a975a7985b0beb0cbe6fbbb71a41dbad # v5
       with:
         file: ./coverage.out
         fail_ci_if_error: false
