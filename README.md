@@ -1,5 +1,7 @@
 # Loki MCP Server
 
+[![SafeSkill 92/100](https://img.shields.io/badge/SafeSkill-92%2F100_Verified%20Safe-brightgreen)](https://safeskill.dev/scan/grafana-loki-mcp)
+
 [![CI](https://github.com/scottlepp/loki-mcp/workflows/CI/badge.svg)](https://github.com/scottlepp/loki-mcp/actions/workflows/ci.yml)
 
 A Go-based server implementation for the Model Context Protocol (MCP) with Grafana Loki integration.
