@@ -17,7 +17,7 @@ services:
         condition: service_healthy
 
   loki:
-    image: grafana/loki:2.9.0
+    image: grafana/loki:2.9.0@sha256:b025a0220f390baaab01578aea2fe0ba677584d9f248c3fe5af15f84dd1de60d
     container_name: loki
     ports:
       - "3100:3100"
@@ -32,7 +32,7 @@ services:
       start_period: 5s
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:latest@sha256:2d1f9ae67c1778d33e291d4c3c759cd8b650e67491f02533499eb950e075eeb5
     container_name: grafana
     ports:
       - "3000:3000"
@@ -48,7 +48,7 @@ services:
 
   # Add Promtail to collect and forward logs to Loki
   promtail:
-    image: grafana/promtail:2.9.0
+    image: grafana/promtail:2.9.0@sha256:c2c423196c75a2c9c26f6fe0ba7200c3167334b14975747f5dcff678bd1a32e9
     container_name: promtail
     volumes:
       - /var/log:/var/log
@@ -60,7 +60,7 @@ services:
 
   # Simple log generator
   log-generator:
-    image: alpine:latest
+    image: alpine:latest@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11
     container_name: log-generator
     command: >
       /bin/sh -c "

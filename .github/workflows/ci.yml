@@ -13,14 +13,14 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@7b8cf10d4e4a01d4992d18a89f4d7dc5a3e6d6f4 # v4
       with:
         go-version: '1.24.4'
     - name: Cache Go modules
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -45,7 +45,7 @@ jobs:
         echo '```' >> $GITHUB_STEP_SUMMARY
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@ab904c41d6ece82784817410c45d8b8c02684457 # v3
       with:
         file: ./coverage.out
         fail_ci_if_error: false
@@ -56,15 +56,15 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@7b8cf10d4e4a01d4992d18a89f4d7dc5a3e6d6f4 # v4
       with:
         go-version: '1.24.4'
 
     - name: Cache Go modules
-      uses: actions/cache@v4
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -91,15 +91,15 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@7b8cf10d4e4a01d4992d18a89f4d7dc5a3e6d6f4 # v4
       with:
         go-version: '1.24.4'
 
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v4
+      uses: golangci/golangci-lint-action@d6238b002a20823d52840fda27e2d4891c5952dc # v4
       with:
         version: latest
         args: --timeout=5m

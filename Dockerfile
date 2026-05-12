@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine AS builder
+FROM golang:1.24-alpine@sha256:8bee1901f1e530bfb4a7850aa7a479d17ae3a18beb6e09064ed54cfd245b7191 AS builder
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o loki-mcp-server ./cmd/server
 
 # Use a smaller image for the final stage
-FROM alpine:latest
+FROM alpine:latest@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11
 
 WORKDIR /app
 
