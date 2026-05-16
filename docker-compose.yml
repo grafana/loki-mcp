@@ -17,7 +17,7 @@ services:
         condition: service_healthy
 
   loki:
-    image: grafana/loki:2.9.0
+    image: grafana/loki:3.7.2@sha256:191d4fdfb7264f16989f0a57f320872620a5a7c2ceeec6229212c4190ec49b86
     container_name: loki
     ports:
       - "3100:3100"
