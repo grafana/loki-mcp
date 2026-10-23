@@ -32,7 +32,7 @@ services:
       start_period: 5s
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:latest@sha256:dbbc38ea21103cefb50396340cd88afec779c7e070b0a7bf5a75b4ce46651d3f
     container_name: grafana
     ports:
       - "3000:3000"
@@ -60,7 +60,7 @@ services:
 
   # Simple log generator
   log-generator:
-    image: alpine:latest
+    image: alpine:latest@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
     container_name: log-generator
     command: >
       /bin/sh -c "
